@@ -42,6 +42,7 @@ module messaging {
                }
            }
         }
+      | CosmosMsg_Custom(custom_msg) => state
     }
   }
 }

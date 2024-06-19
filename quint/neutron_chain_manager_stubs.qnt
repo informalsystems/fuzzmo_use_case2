@@ -20,6 +20,18 @@ module neutron_chain_manager {
   pure val DENOMS = Set("d1", "uawesome")
   pure val MAX_AMOUNT = 200
 
+  // add here all possible strategies that should be included
+  pure val ALL_POSSIBLE_STRATEGIES = Set()
+
+  // add here all possible cosmos messages for which we want to test
+  pure val ALL_COSMOS_MESSAGES = Set()
+
+  // setting the strings that were not generated to be strings for now, 
+  // later we may refine it as necessary
+  type NeutronMsg = str
+  type AdminProposal = str
+  type ProposalExecuteMessage = str
+
 
   type InstantiateMsg = { initial_strategy_address: Addr, initial_strategy: Strategy }
   type MigrateMsg = {  }
@@ -30,13 +42,13 @@ module neutron_chain_manager {
   type ProposalExecuteMessageJSON = { type_field: str }
   type MsgUpdateParamsCron = { params: ParamsCron }
   type ParamsCron = { security_address: str, limit: int }
-  type StringOrNumberVisitor = 
+  
   type ParamsRequestCron = {  }
   type ParamsResponseCron = { params: ParamsCron }
   type ExecuteMsg =
     | ExecuteMsg_AddStrategy({ address: Addr, strategy: Strategy })
     | ExecuteMsg_RemoveStrategy({ address: Addr })
-    | ExecuteMsg_ExecuteMessages({ messages: List[CosmosMsg[NeutronMsg]] })
+    | ExecuteMsg_ExecuteMessages({ messages: List[CosmosMsg] })
   type Strategy =
     | Strategy_AllowAll
     | Strategy_AllowOnly(List[Permission])
@@ -51,13 +63,17 @@ module neutron_chain_manager {
     (Ok(Response_new), state)
   }
 
-  pure def execute(state: ContractState, _env: Env, info: MessageInfo, msg: ExecuteMsg): (Result[Response[NeutronMsg], ContractError], ContractState) = match msg {
+  pure def execute(state: ContractState, _env: Env, info: MessageInfo, msg: ExecuteMsg): (Result[Response, ContractError], ContractState) = match msg {
     | ExecuteMsg_AddStrategy(__r) => execute_add_strategy(state, info, __r.address, __r.strategy)
     | ExecuteMsg_RemoveStrategy(__r) => execute_remove_strategy(state, info, __r.address)
     | ExecuteMsg_ExecuteMessages(__r) => execute_execute_messages(state, info, __r.messages)
   }
 
-  pure def execute_add_strategy(state: ContractState, info: MessageInfo, address: Addr, strategy: Strategy): (Result[Response[NeutronMsg], ContractError], ContractState) = {
+  pure def execute_add_strategy(
+    state: ContractState, 
+    info: MessageInfo, 
+    address: Addr, 
+    strategy: Strategy): (Result[Response, ContractError], ContractState) = {
     // TODO: Update body
     (Ok(Response_new), state)
   }
@@ -66,12 +82,17 @@ module neutron_chain_manager {
     // TODO: Change next line according to fund expectations
     pure val max_funds = MAX_AMOUNT
     nondet message_address: Addr = Set("s1", "s2", "s3").oneOf()
-    nondet message_strategy: Strategy = "<missing-nondet-value>".oneOf()
+    // TODO: add a set of strategies to choose from
+    nondet message_strategy: Strategy = ALL_POSSIBLE_STRATEGIES.oneOf()
     pure val message: ExecuteMsg = ExecuteMsg_AddStrategy({ address: message_address, strategy: message_strategy })
     execute_message(message, max_funds)
   }
 
-  pure def execute_remove_strategy(state: ContractState, info: MessageInfo, address: Addr): (Result[Response[NeutronMsg], ContractError], ContractState) = {
+  pure def execute_remove_strategy(
+    state: ContractState, 
+    info: MessageInfo, 
+    address: Addr
+    ): (Result[Response, ContractError], ContractState) = {
     // TODO: Update body
     (Ok(Response_new), state)
   }
@@ -84,7 +105,10 @@ module neutron_chain_manager {
     execute_message(message, max_funds)
   }
 
-  pure def execute_execute_messages(state: ContractState, info: MessageInfo, messages: List[CosmosMsg[NeutronMsg]]): (Result[Response[NeutronMsg], ContractError], ContractState) = {
+  pure def execute_execute_messages(
+    state: ContractState, 
+    info: MessageInfo, 
+    messages: List[CosmosMsg]): (Result[Response, ContractError], ContractState) = {
     // TODO: Update body
     (Ok(Response_new), state)
   }
@@ -92,31 +116,59 @@ module neutron_chain_manager {
   action execute_execute_messages_action = {
     // TODO: Change next line according to fund expectations
     pure val max_funds = MAX_AMOUNT
-    nondet message_messages: List[CosmosMsg[NeutronMsg]] = "<missing-nondet-value>".allListsUpTo(2).oneOf()
+
+    // TODO: Change this line to include messages you want to test with
+    nondet message_messages: List[CosmosMsg] = ALL_COSMOS_MESSAGES.allListsUpTo(2).oneOf()
     pure val message: ExecuteMsg = ExecuteMsg_ExecuteMessages({ messages: message_messages })
     execute_message(message, max_funds)
   }
-  pure def is_authorized(state: ContractState, address: Addr): Result[(), ContractError] = Ok(Response_new)
-  pure def no_admins_left(state: ContractState): Result[bool, ContractError] = Ok(not_found)
-  pure def check_allow_only_permissions(state: ContractState, strategy: Strategy, messages: List[CosmosMsg[NeutronMsg]]): Result[(), ContractError] = Ok(())
-  pure def check_neutron_msg(state: ContractState, strategy: Strategy, neutron_msg: NeutronMsg): Result[(), ContractError] = Ok(())
-  pure def check_submit_admin_proposal_message(state: ContractState, strategy: Strategy, proposal: AdminProposal): Result[(), ContractError] = Ok(())
-  pure def check_proposal_execute_message(state: ContractState, strategy: Strategy, proposal: ProposalExecuteMessage): Result[(), ContractError] = Ok(())
-  pure def check_cron_update_msg_params(state: ContractState, strategy: Strategy, proposal: ProposalExecuteMessage): Result[(), ContractError] = Ok(())
 
-  pure def migrate(state: ContractState, _env: Env, _msg: MigrateMsg): (Result[Response, ContractError], ContractState) = {
-    // TODO: Update body
-    (Ok(Response_default), state)
-  }
+
+  pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(Response_new)
+
+  pure def no_admins_left(state: ContractState): Result[bool, ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(true)
+
+  pure def check_allow_only_permissions(
+    state: ContractState, 
+    strategy: Strategy, 
+    messages: List[CosmosMsg]): Result[(), ContractError] = 
+
+    // TODO: stub, fill in based on the code
+    Ok(())
+
+
+  pure def check_neutron_msg(state: ContractState, strategy: Strategy, neutron_msg: NeutronMsg): Result[(), ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(())
+
+  pure def check_submit_admin_proposal_message(
+    state: ContractState, 
+    strategy: Strategy, 
+    proposal: AdminProposal): Result[(), ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(())
+
+  pure def check_proposal_execute_message(
+    state: ContractState, 
+    strategy: Strategy, 
+    proposal: ProposalExecuteMessage): Result[(), ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(())
+
+  pure def check_cron_update_msg_params(
+    state: ContractState, 
+    strategy: Strategy, 
+    proposal: ProposalExecuteMessage): Result[(), ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(())
+
+  
                             
-  action migrate_action = {
-    // TODO: Change next line according to fund expectations
-    pure val max_funds = MAX_AMOUNT
-    
-    pure val message: UnknownType = ConstructorFormigrate
-    execute_message(message, max_funds)
-  }
-  pure def deserialize_cron_limit(deserializer: D): Result[int, D_Error] = deserializer
+  // this is likely not needed, but leaving it for now
   pure val CONTRACT_NAME = "crates.io:neutron-chain-manager"
   pure val CONTRACT_VERSION = "0.3.0"
   pure val PARAMS_QUERY_PATH_CRON = "/neutron.cron.Query/Params"
@@ -134,8 +186,7 @@ module neutron_chain_manager {
     any {
       execute_add_strategy_action,
       execute_remove_strategy_action,
-      execute_execute_messages_action,
-      migrate_action
+      execute_execute_messages_action      
     },
     advance_time,
   }
@@ -157,7 +208,7 @@ module neutron_chain_manager {
     val funds = [{ denom: denom, amount: amount }]
     val info = { sender: sender, funds: funds }
 
-    pure val message: InstantiateMsg = { initial_strategy_address: "s1", initial_strategy: "<missing-value>" }
+    pure val message: InstantiateMsg = { initial_strategy_address: "s1", initial_strategy: Strategy_AllowAll }
     pure val r = instantiate(init_contract_state, { block: { time: 0, height: 1 } }, info, message)
 
     all {
