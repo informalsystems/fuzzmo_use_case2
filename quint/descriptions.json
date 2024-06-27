@@ -1,0 +1,5 @@
+{
+    "execute_add_strategy": {
+        "description": "Adds a new strategy to the address. First, it checks if the sender is authorized to perform this action. If authorized, the new strategy is saved. If the strategy being added is 'AllowOnly', it checks that there are still administrators left; otherwise, it returns an error. If the strategy is added successfully, it returns a success response with the action and address details."
+    }
+}
