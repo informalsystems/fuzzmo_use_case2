@@ -1,5 +1,11 @@
 {
+    "instantiate": {
+        "description": "Initializes the contract with the provided strategy belonging to the provided address. Returns an InvalidInitialStrategy error if the strategy is an AllowOnly variant."
+    },
     "execute_add_strategy": {
-        "description": "Adds a new strategy to the address. First, it checks if the sender is authorized to perform this action. If authorized, the new strategy is saved. If the strategy being added is 'AllowOnly', it checks that there are still administrators left; otherwise, it returns an error. If the strategy is added successfully, it returns a success response with the action and address details."
+        "description": "Adds a new strategy to the address. First, it checks if the sender is authorized to perform this action, using `pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError]`, which returns an Unautorized error if not. If authorized, the new strategy is saved. If the strategy being added is 'AllowOnly', it checks that there are still administrators left by calling `pure def no_admins_left(state: ContractState): Result[bool, ContractError]`, which always returns either `Ok(true)` or `Ok(false)`; otherwise, it returns an InvalidDemotion error along with the original state. If the strategy is added successfully, it returns a success response with the action and address details."
+    },
+    "execute_remove_strategy": {
+        "description": "Removes the strategy from the address. First, it checks if the sender is authorized to perform this action, using `pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError]`, which returns an Unautorized error if not. If authorized, the strategy is removed. Then, it checks that there are still administrators left by calling `pure def no_admins_left(state: ContractState): Result[bool, ContractError]`, which always returns either `Ok(true)` or `Ok(false)`; otherwise, it returns an InvalidDemotion error along with the original state. If the strategy is removed successfully, it returns a success response with the action and address details."
     }
 }

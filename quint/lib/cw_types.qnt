@@ -155,7 +155,7 @@ module cw_types {
 
   // These shouldn't be actually used, but they are here for completion
   type MultiIndex[ik, t, pk] = ()
-  type IndexedMap[k, t i] = ()
+  type IndexedMap[k, t, i] = ()
 
   type StdError = str
   type StdResult[a] = Result[a, StdError]
