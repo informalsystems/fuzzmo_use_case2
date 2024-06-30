@@ -59,15 +59,8 @@ module neutron_chain_manager {
   type UpdateParamsPermission =
     | UpdateParamsPermission_CronUpdateParamsPermission(CronUpdateParamsPermission)
   pure def instantiate(state: ContractState, _env: Env, _info: MessageInfo, msg: InstantiateMsg): (Result[Response, ContractError], ContractState) = {
-    match msg.initial_strategy {
-      | Strategy_AllowAll => {
-        val updated_state = { ...state, strategies: state.strategies.put(msg.initial_strategy_address, msg.initial_strategy) }
-        (Ok(Response_new
-          .add_attribute("action", FromStr("instantiate"))
-          .add_attribute("init_allow_all_address", FromStr(msg.initial_strategy_address))),  updated_state)
-      }
-      | Strategy_AllowOnly(_) => (Err("InvalidInitialStrategy"), state)
-    }
+    // TODO: Update body
+    (Ok(Response_new), state)
   }
 
   pure def execute(state: ContractState, _env: Env, info: MessageInfo, msg: ExecuteMsg): (Result[Response, ContractError], ContractState) = match msg {
@@ -81,42 +74,9 @@ module neutron_chain_manager {
       info: MessageInfo, 
       address: Addr, 
       strategy: Strategy): (Result[Response, ContractError], ContractState) = {
-
-      // Check if sender is authorized
-      match is_authorized(state, info.sender) {
-        | Err(e) => (Err(e), state)
-        | Ok(_) => {
-          // Check if the strategy is 'AllowOnly' and there are still administrators left
-          match strategy {
-            | Strategy_AllowOnly(permissions) => {
-              val new_state = { ...state, strategies: state.strategies.put(address, strategy) }
-              val no_admins_left_res = no_admins_left(new_state)
-
-              match no_admins_left_res {
-                | Err(e) => (Err(e), state)
-                | Ok(res) =>  if (res) {
-                    (Err("Cannot remove last administrator"), state)
-                  } else {
-                    val response = Response_new
-                      .add_attribute("action", FromStr("add_strategy"))
-                      .add_attribute("address", FromStr(address))
-
-                    (Ok(response), new_state)
-                  }
-              }
-            }
-            | _ => {
-              val new_state = { ...state, strategies: state.strategies.put(address, strategy) }
-              val response = Response_new
-                .add_attribute("action", FromStr("execute_add_strategy"))
-                .add_attribute("address", FromStr(address))
-
-              (Ok(response), new_state)
-            }
-          }
-        }
-      }
-    }
+    // TODO: Update body
+    (Ok(Response_new), state)
+  }
                             
   action execute_add_strategy_action = {
     // TODO: Change next line according to fund expectations
@@ -133,28 +93,9 @@ module neutron_chain_manager {
     info: MessageInfo, 
     address: Addr
     ): (Result[Response, ContractError], ContractState) = {
-      // Check if sender is authorized
-      match is_authorized(state, info.sender) {
-        | Err(e) => (Err(e), state)
-        | Ok(_) => {
-          val new_state = { ...state, strategies: state.strategies.mapRemove(address) }
-          val no_admins_left_res = no_admins_left(new_state)
-
-          match no_admins_left_res {
-            | Err(e) => (Err(e), state)
-            | Ok(res) =>  if (res) {
-                (Err("Cannot remove last administrator"), state)
-              } else {
-                val response = Response_new
-                  .add_attribute("action", FromStr("execute_remove_strategy"))
-                  .add_attribute("address", FromStr(address))
-
-                (Ok(response), new_state)
-              }
-          }
-        }
-      }
-    }
+    // TODO: Update body
+    (Ok(Response_new), state)
+  }
                             
   action execute_remove_strategy_action = {
     // TODO: Change next line according to fund expectations
@@ -168,25 +109,8 @@ module neutron_chain_manager {
     state: ContractState, 
     info: MessageInfo, 
     messages: List[CosmosMsg]): (Result[Response, ContractError], ContractState) = {
-    if (not(state.strategies.keys().contains(info.sender))) {
-      (Err("Unauthorized"), state)
-    } else {
-      val strategy = state.strategies.get(info.sender)
-      val response = Response_new
-        .add_attribute("action", FromStr("execute_execute_messages"))
-        .add_attribute("address", FromStr(info.sender))
-      val response_with_messages = messages.foldl(response, (acc, msg) =>  acc.add_message(msg) )
-      match strategy {
-        | Strategy_AllowAll => (Ok(response_with_messages.add_attribute("strategy", FromStr("allow_all"))), state)
-        | Strategy_AllowOnly(_) => {
-          val check_res = check_allow_only_permissions(state, strategy, messages)
-          match check_res {
-            | Err(e) => (Err(e), state)
-            | Ok(_) => (Ok(response_with_messages.add_attribute("strategy", FromStr("allow_only"))), state)
-          }
-        }
-      }
-    }
+    // TODO: Update body
+    (Ok(Response_new), state)
   }
                             
   action execute_execute_messages_action = {
@@ -200,20 +124,13 @@ module neutron_chain_manager {
   }
 
 
-  pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError] = {
-    match state.strategies.getOrElse(address, Strategy_AllowOnly([])) {
-      | Strategy_AllowAll => Ok(Response_new)
-      | Strategy_AllowOnly(permissions) => Err("Unauthorized")
-    }
-  }
+  pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError]  = 
+    // TODO: stub, fill in based on the code
+    Ok(Response_new)
 
-  pure def no_admins_left(state: ContractState): Result[bool, ContractError] = {
-    val remaining_admins = state.strategies.keys().filter(addr => match state.strategies.get(addr) {
-      | Strategy_AllowAll => true
-      | _ => false
-    })
-    Ok(remaining_admins.size() == 0)
-  }
+  pure def no_admins_left(state: ContractState): Result[bool, ContractError] = 
+    // TODO: stub, fill in based on the code
+    Ok(true)
 
   pure def check_allow_only_permissions(
     state: ContractState, 
