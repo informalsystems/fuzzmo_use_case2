@@ -5,12 +5,15 @@ module neutron_chain_manager {
   import cw_utils.* from "./lib/cw_utils"
   import messaging.* from "./lib/messaging"
   import bank from "./lib/bank"
+  import types.* from "./types"
 
   
   var contract_state: ContractState
   var result: Result
   var bank: bank::Bank
   var time: int
+  var actionTakenType: str
+  var chosenSender: str
 
   
   pure val CONTRACT_ADDRESS = "contract0"
@@ -21,43 +24,33 @@ module neutron_chain_manager {
   pure val MAX_AMOUNT = 200
 
   // add here all possible strategies that should be included
-  pure val ALL_POSSIBLE_STRATEGIES = Set()
+  pure val ALL_POSSIBLE_STRATEGIES = 
+    Set(
+      Strategy_AllowAll, 
+      Strategy_AllowOnly(
+        [Permission_ParamChangePermission(
+          {params: [{subspace: "subspace1", key: "key1"}]}
+          // [{subspace: "subspace1", key: "key1"}]
+          )]
+      )
+        
+    )
+      
+      
 
   // add here all possible cosmos messages for which we want to test
-  pure val ALL_COSMOS_MESSAGES = Set()
+  pure val ALL_COSMOS_MESSAGES = 
+    Set(
+      CosmosMsg_Custom(
+        NeutronMsg_SubmitProposalExecuteMessage(
+          ProposalExecuteMessage_Other("some other message")
+        )
+      )
+    )
 
   // setting the strings that were not generated to be strings for now, 
   // later we may refine it as necessary
-  type NeutronMsg = str
-  type AdminProposal = str
-  type ProposalExecuteMessage = str
-
-
-  type InstantiateMsg = { initial_strategy_address: Addr, initial_strategy: Strategy }
-  type MigrateMsg = {  }
-  type ParamChangePermission = { params: List[ParamPermission] }
-  type ParamPermission = { subspace: str, key: str }
-  type CronUpdateParamsPermission = { security_address: bool, limit: bool }
-  type CronPermission = { add_schedule: bool, remove_schedule: bool }
-  type ProposalExecuteMessageJSON = { type_field: str }
-  type MsgUpdateParamsCron = { params: ParamsCron }
-  type ParamsCron = { security_address: str, limit: int }
   
-  type ParamsRequestCron = {  }
-  type ParamsResponseCron = { params: ParamsCron }
-  type ExecuteMsg =
-    | ExecuteMsg_AddStrategy({ address: Addr, strategy: Strategy })
-    | ExecuteMsg_RemoveStrategy({ address: Addr })
-    | ExecuteMsg_ExecuteMessages({ messages: List[CosmosMsg] })
-  type Strategy =
-    | Strategy_AllowAll
-    | Strategy_AllowOnly(List[Permission])
-  type Permission =
-    | Permission_ParamChangePermission(ParamChangePermission)
-    | Permission_UpdateParamsPermission(UpdateParamsPermission)
-    | Permission_CronPermission(CronPermission)
-  type UpdateParamsPermission =
-    | UpdateParamsPermission_CronUpdateParamsPermission(CronUpdateParamsPermission)
   pure def instantiate(state: ContractState, _env: Env, _info: MessageInfo, msg: InstantiateMsg): (Result[Response, ContractError], ContractState) = {
     match msg.initial_strategy {
       | Strategy_AllowAll => {
@@ -117,11 +110,24 @@ module neutron_chain_manager {
         }
       }
     }
+  
+  action execute_add_strategy_action2 = {
+    // TODO: Change next line according to fund expectations
+    pure val max_funds = MAX_AMOUNT
+    pure val message_address: Addr = "sender2"
+    // TODO: add a set of strategies to choose from
+    val message_strategy: Strategy =       
+      Strategy_AllowOnly([
+        Permission_ParamChangePermission({params: [{subspace: "subspace1", key: "key1"}]})
+    ])
+    pure val message: ExecuteMsg = ExecuteMsg_AddStrategy({ address: message_address, strategy: message_strategy })
+    execute_message(message, max_funds)
+  }
                             
   action execute_add_strategy_action = {
     // TODO: Change next line according to fund expectations
     pure val max_funds = MAX_AMOUNT
-    nondet message_address: Addr = Set("s1", "s2", "s3").oneOf()
+    nondet message_address: Addr = ADDRESSES.oneOf()
     // TODO: add a set of strategies to choose from
     nondet message_strategy: Strategy = ALL_POSSIBLE_STRATEGIES.oneOf()
     pure val message: ExecuteMsg = ExecuteMsg_AddStrategy({ address: message_address, strategy: message_strategy })
@@ -159,7 +165,7 @@ module neutron_chain_manager {
   action execute_remove_strategy_action = {
     // TODO: Change next line according to fund expectations
     pure val max_funds = MAX_AMOUNT
-    nondet message_address: Addr = Set("s1", "s2", "s3").oneOf()
+    nondet message_address: Addr = ADDRESSES.oneOf()
     pure val message: ExecuteMsg = ExecuteMsg_RemoveStrategy({ address: message_address })
     execute_message(message, max_funds)
   }
@@ -190,6 +196,7 @@ module neutron_chain_manager {
   }
                             
   action execute_execute_messages_action = {
+    
     // TODO: Change next line according to fund expectations
     pure val max_funds = MAX_AMOUNT
 
@@ -200,11 +207,13 @@ module neutron_chain_manager {
   }
 
 
-  pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError] = {
-    match state.strategies.getOrElse(address, Strategy_AllowOnly([])) {
-      | Strategy_AllowAll => Ok(Response_new)
-      | Strategy_AllowOnly(permissions) => Err("Unauthorized")
-    }
+  pure def is_authorized(state: ContractState, address: Addr): Result[(), ContractError] = {
+    if (not(state.strategies.keys().contains(address))) 
+      Err("Unauthorized")
+    else if (not(state.strategies.get(address) == Strategy_AllowAll))
+      Err("Unauthorized")  
+    else
+      Ok(())    
   }
 
   pure def no_admins_left(state: ContractState): Result[bool, ContractError] = {
@@ -220,32 +229,93 @@ module neutron_chain_manager {
     strategy: Strategy, 
     messages: List[CosmosMsg]): Result[(), ContractError] = 
 
-    // TODO: stub, fill in based on the code
-    Ok(())
+    if (listForall(
+      messages,
+      m => match m {
+          | CosmosMsg_Wasm(_) => true
+          | CosmosMsg_Bank(_) => true
+          | CosmosMsg_Custom(n) => 
+          val c = check_neutron_msg(state, strategy, n)
+          match c
+          {
+            | Err(e) => false
+            | Ok(_) => true
+          }      
+      }
+    ))   
+             
+      Ok(())
+    else
+      Err("Unauthorized")
+    
 
 
   pure def check_neutron_msg(state: ContractState, strategy: Strategy, neutron_msg: NeutronMsg): Result[(), ContractError] = 
-    // TODO: stub, fill in based on the code
-    Ok(())
+    match neutron_msg {
+      | NeutronMsg_SubmitAdminProposal(p) => check_submit_admin_proposal_message(state, strategy, p)
+      
+      | NeutronMsg_SubmitProposalExecuteMessage(p) => check_proposal_execute_message(state, strategy, p)
+      | NeutronMsg_CronUpdateParams(p) => check_cron_update_msg_params(state, strategy, p)
+      // | _ => Ok(())
+    }
+
+  pure def has_param_change_permission(
+    state: ContractState,
+    strategy: Strategy,
+    pc: ParamChange): bool = 
+    match strategy {
+      | Strategy_AllowAll => true
+      | Strategy_AllowOnly(permissions) => 
+        listExists(
+          permissions,
+          x => match x {
+            | Permission_ParamChangePermission(p) => 
+              listExists(
+                p.params,
+                y => y.subspace == pc.subspace and y.key == pc.key
+              )
+            | _ => false
+          }
+        )
+    }
+  
 
   pure def check_submit_admin_proposal_message(
     state: ContractState, 
     strategy: Strategy, 
     proposal: AdminProposal): Result[(), ContractError] = 
     // TODO: stub, fill in based on the code
-    Ok(())
+    match proposal {
+      | Proposal_ParamChangeProposal(p) => 
+        val allow = listForall(
+          p.param_changes,
+          x => has_param_change_permission(state, strategy, x)
+          )
+        if (allow)
+          Ok(())
+        else
+          Err("Unauthorized")
+      | Proposal_ProposalExecuteMessage(p) => check_proposal_execute_message(state, strategy, p)
+    }
+    
 
   pure def check_proposal_execute_message(
     state: ContractState, 
     strategy: Strategy, 
     proposal: ProposalExecuteMessage): Result[(), ContractError] = 
-    // TODO: stub, fill in based on the code
-    Ok(())
+    
+    // this is the function with a bug! Here, some unpacking is takig place etc.
+    match proposal {
+      | ProposalExecuteMessage_CronEncoded(p) => check_cron_update_msg_params(state, strategy, p)
+      | ProposalExecuteMessage_Other(_) => Ok(())
+    }
+
+    
 
   pure def check_cron_update_msg_params(
     state: ContractState, 
     strategy: Strategy, 
-    proposal: ProposalExecuteMessage): Result[(), ContractError] = 
+    proposal: MsgUpdateParamsCron): Result[(), ContractError] = 
     // TODO: stub, fill in based on the code
     Ok(())
 
@@ -266,9 +336,10 @@ module neutron_chain_manager {
   }
 
   action execute_step = all {
+    // TODO: continue here
     any {
       execute_add_strategy_action,
-      execute_remove_strategy_action,
+      // execute_remove_strategy_action,
       execute_execute_messages_action      
     },
     advance_time,
@@ -291,7 +362,7 @@ module neutron_chain_manager {
     val funds = [{ denom: denom, amount: amount }]
     val info = { sender: sender, funds: funds }
 
-    pure val message: InstantiateMsg = { initial_strategy_address: "s1", initial_strategy: Strategy_AllowAll }
+    pure val message: InstantiateMsg = { initial_strategy_address: "sender1", initial_strategy: Strategy_AllowAll }
     pure val r = instantiate(init_contract_state, { block: { time: 0, height: 1 } }, info, message)
 
     all {
@@ -299,12 +370,16 @@ module neutron_chain_manager {
       bank' = init_bank_state,
       result' = r._1,
       time' = 0,
+      actionTakenType' = "instantiate",
+      chosenSender' = sender,
     }
   }
 
 
   action execute_message(message, max_funds) = {
-    nondet sender = ADDRESSES.oneOf()
+    // nondet sender = ADDRESSES.oneOf()
+    // val sender = "sender1"
+    nondet sender = Set("sender1", "sender2").oneOf()
     nondet denom = DENOMS.oneOf()
     nondet amount = 0.to(max_funds).oneOf()
     val funds = [{ denom: denom, amount: amount }]
@@ -320,6 +395,12 @@ module neutron_chain_manager {
       },
       result' = r._1,
       contract_state' = r._2,
+      actionTakenType' = match message {
+        | ExecuteMsg_AddStrategy(_) => "add"
+        | ExecuteMsg_RemoveStrategy(_) => "remove"
+        | ExecuteMsg_ExecuteMessages(_) => "execute"
+      },
+      chosenSender' = sender,
     }
   }
 
@@ -337,11 +418,23 @@ module neutron_chain_manager {
             bank' = new_state.bank,
             result' = new_state.result,
             contract_state' = new_state.contract_state,
+            actionTakenType' = "processing submsg",
             advance_time,
+            chosenSender' = "none",
+
           }
       }
       | None => execute_step
     }
   }
+
+  // INVARIANTS
+  def other_action_never_succeeds = 
+    and {
+      actionTakenType == "execute",
+      contract_state.strategies.keys().contains(chosenSender),
+      not(contract_state.strategies.get(chosenSender) == Strategy_AllowAll)
+    } implies (result == Err("Unauthorized"))
+
 
 }

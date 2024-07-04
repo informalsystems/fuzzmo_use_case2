@@ -175,6 +175,12 @@ module basicSpells {
   pure def listMap(l: List[a], f: (a) => b): List[b] =
     l.foldl([], (acc, e) => acc.append(f(e)))
 
+  pure def listForall(l: List[a], f: (a) => bool): bool =
+    l.foldl(true, (acc, e) => acc and f(e))
+
+  pure def listExists(l: List[a], f: (a) => bool): bool =
+    l.foldl(false, (acc, e) => acc or f(e))
+
   //// Returns a set of the elements in the list.
   ////
   //// - @param l a list

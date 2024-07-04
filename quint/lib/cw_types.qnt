@@ -3,6 +3,23 @@
 module cw_types {
   import basicSpells.* from "./basicSpells"
 
+  
+  type NeutronMsg = 
+    | NeutronMsg_SubmitAdminProposal(AdminProposal)
+    | NeutronMsg_SubmitProposalExecuteMessage(ProposalExecuteMessage)
+    | NeutronMsg_CronUpdateParams(MsgUpdateParamsCron)
+  
+  type ParamChange = { subspace: str, key: str, value: str }
+  type ParamChangeProposal = { title: str, description: str, param_changes: List[ParamChange] }
+  type AdminProposal = 
+    | Proposal_ParamChangeProposal(ParamChangeProposal)
+    | Proposal_ProposalExecuteMessage(ProposalExecuteMessage)  
+    
+  type ProposalExecuteMessage = 
+    | ProposalExecuteMessage_CronEncoded(MsgUpdateParamsCron)
+    | ProposalExecuteMessage_Other(str)
+  type MsgUpdateParamsCron = { params: ParamsCron }
+  type ParamsCron = { security_address: str, limit: int }
   type Addr = str
   type Denom = str
 
@@ -25,13 +42,12 @@ module cw_types {
     events: List[Event],
     data: Option[str],
   }
-
-  type T = str
-
+  
+  
   type CosmosMsg =
     | CosmosMsg_Wasm(WasmMsg)
     | CosmosMsg_Bank(BankMsg)
-    | CosmosMsg_Custom(T)
+    | CosmosMsg_Custom(NeutronMsg)
     // | CosmosMsg_Staking(StakingMsg)
     // | CosmosMsg_Distribution(DistributionMsg)
 
