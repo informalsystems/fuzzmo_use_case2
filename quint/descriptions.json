@@ -10,5 +10,8 @@
     },
     "execute_execute_messages": {
         "description": "Executes a list of messages for the sender. First, it checks if the sender has a strategy associated with their address. If the sender does not have an associated strategy, it returns an Unauthorized error. If the sender has a strategy, it loads the strategy and processes the messages according to the strategy type. For the AllowAll strategy, it adds the messages to the response directly. For the AllowOnly strategy, it checks each message to ensure it has the necessary permissions using the function `check_allow_only_permissions(state: ContractState, strategy: Strategy, messages: List[CosmosMsg]): Result[(), ContractError]`. If all messages are valid, they are added to the response (use `messages.foldl`)."
+    },
+    "check_allow_only_permissions": {
+        "description": "Checks if the messages are allowed by the strategy. It iterates over the messages and checks if the sender has the necessary permissions to execute them. If the sender does not have the necessary permissions, it returns an Unauthorized error. If the sender has the necessary permissions, it returns a success response."
     }
 }
