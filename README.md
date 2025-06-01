@@ -1,3 +1,11 @@
+This repository is a clone of [Neutron DAO](https://github.com/neutron-org/neutron-dao).
+It is used to illustrate Quint model generation techniques described in the paper [Accessible Smart Contracts Verification: Synthesizing Formal Models with Tamed LLMs](https://arxiv.org/abs/2501.12972). 
+The relevant content is in the `quint` repository.
+
+---
+
+---
+
 # Neutron DAO
 
 [![BSL 1.1 License][license-shield]][license-url]
