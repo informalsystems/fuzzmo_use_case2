@@ -1,0 +1,17 @@
+{
+    "instantiate": {
+        "description": "Initializes the contract with the provided strategy belonging to the provided address. Returns an InvalidInitialStrategy error if the strategy is an AllowOnly variant."
+    },
+    "execute_add_strategy": {
+        "description": "Adds a new strategy to the address. First, it checks if the sender is authorized to perform this action, using `pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError]`, which returns an Unautorized error if not. If authorized, the new strategy is saved. If the strategy being added is 'AllowOnly', it checks that there are still administrators left by calling `pure def no_admins_left(state: ContractState): Result[bool, ContractError]`, which always returns either `Ok(true)` if there are no admins for a given state, or `Ok(false)` if there are; otherwise, it returns an InvalidDemotion error along with the original state. If the strategy is added successfully, it returns a success response with the action and address details."
+    },
+    "execute_remove_strategy": {
+        "description": "Removes the strategy from the address. First, it checks if the sender is authorized to perform this action, using `pure def is_authorized(state: ContractState, address: Addr): Result[Response, ContractError]`, which returns an Unautorized error if not. If authorized, the strategy is removed. Then, it checks that there are still administrators left by calling `pure def no_admins_left(state: ContractState): Result[bool, ContractError]`, which always returns either `Ok(true)` if there are no admins for a given state, or `Ok(false)` if there are; otherwise, it returns an InvalidDemotion error along with the original state. If the strategy is removed successfully, it returns a success response with the action and address details."
+    },
+    "execute_execute_messages": {
+        "description": "Executes a list of messages for the sender. First, it checks if the sender has a strategy associated with their address. If the sender does not have an associated strategy, it returns an Unauthorized error. If the sender has a strategy, it loads the strategy and processes the messages according to the strategy type. For the AllowAll strategy, it adds the messages to the response directly. For the AllowOnly strategy, it checks each message to ensure it has the necessary permissions using the function `check_allow_only_permissions(state: ContractState, strategy: Strategy, messages: List[CosmosMsg]): Result[(), ContractError]`. If all messages are valid, they are added to the response (use `messages.foldl`)."
+    },
+    "check_allow_only_permissions": {
+        "description": "Checks if the messages are allowed by the strategy. It iterates over the messages and checks if the sender has the necessary permissions to execute them. If the sender does not have the necessary permissions, it returns an Unauthorized error. If the sender has the necessary permissions, it returns a success response."
+    }
+}
